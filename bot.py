@@ -67,6 +67,23 @@ async def find_script(ctx, *, query: str = None):
         if query in key.lower() or query in script["name"].lower():
             embed = discord.Embed(
                 title=f"💛 {script['name']}",
+                description=f"**{script['desc']}**",
+                color=0xFFD400
+            )
+            embed.set_footer(text="LUA STUDIO ON TOP | IM TOO GOOD | Mobile: copy below")
+            await ctx.send(embed=embed)
+            # Mobile copyable version - separate message
+            await ctx.send(f"**Copy for mobile:**\n```lua\n{script['loadstring']}\n```")
+            return
+    await ctx.send(f"No script found for `{query}`. Do `!list`")
+    if not query:
+        await ctx.send("**LUA STUDIO FINDER**\nUsage: `!find duels`\nDo `!list` to see all scripts")
+        return
+    query = query.lower()
+    for key, script in SCRIPTS.items():
+        if query in key.lower() or query in script["name"].lower():
+            embed = discord.Embed(
+                title=f"💛 {script['name']}",
                 description=f"**{script['desc']}**\n\n```lua\n{script['loadstring']}\n```",
                 color=0xFFD400
             )
