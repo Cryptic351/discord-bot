@@ -2,13 +2,29 @@ import discord
 from discord.ext import commands
 import json
 import os
+from flask import Flask
+from threading import Thread
+
+# --- FIX FOR RENDER FREE (fixes your port error) ---
+app = Flask('')
+@app.route('/')
+def home():
+    return "LUA STUDIO BOT ONLINE - IM TOO GOOD"
+
+def run():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 # CONFIG
 BOT_TOKEN = os.environ["TOKEN"]
 PREFIX = "!"
 SCRIPTS_FILE = "scripts.json"
 
-# Default scripts - will be saved to scripts.json on first run
+# Default scripts
 DEFAULT_SCRIPTS = {
     "duels": {
         "name": "LUA STUDIO Duels Fork",
@@ -71,52 +87,25 @@ async def list_scripts(ctx):
     embed.set_footer(text="Yellow & Black | Pixel Logo | Fade-In")
     await ctx.send(embed=embed)
 
-# ADMIN ONLY ADD COMMAND
 @bot.command(name="add")
 @commands.has_permissions(administrator=True)
 async def add_script(ctx, key: str = None, *, rest: str = None):
-    """
-    Usage: !add duels LUA STUDIO Duels | loadstring(...) | Yellow & Black theme
-    Format: !add <key> <Name> | <loadstring> | <desc>
-    Example: !add duels Duels Fork | loadstring(game:HttpGet("https://..."))() | My duels script
-    """
     if not key or not rest:
-        await ctx.send(
-            "**ADMIN ONLY - HOW TO USE:**\n"
-            "```\n!add <key> <Name> | <loadstring> | <description>\n```\n"
-            "**Example:**\n"
-            "```\n!add duels LUA STUDIO Duels Fork | loadstring(game:HttpGet(\"https://...\"))() | Yellow & Black Pixel\n```\n"
-            "Use `|` to separate name, loadstring, and desc"
-        )
+        await ctx.send("**ADMIN ONLY - HOW TO USE:**\n```\n!add <key> <Name> | <loadstring> | <description>\n```")
         return
-
     try:
-        # Split by |
         parts = [p.strip() for p in rest.split("|")]
         if len(parts) < 2:
-            await ctx.send("❌ You need at least Name | loadstring - Use `|` to separate. Example: `!add bedwars BedWars OP | loadstring(...)`")
+            await ctx.send("❌ You need at least Name | loadstring")
             return
-        
         name = parts[0]
         loadstring_code = parts[1]
         desc = parts[2] if len(parts) > 2 else "No description"
-
-        SCRIPTS[key.lower()] = {
-            "name": name,
-            "loadstring": loadstring_code,
-            "desc": desc
-        }
+        SCRIPTS[key.lower()] = {"name": name, "loadstring": loadstring_code, "desc": desc}
         save_scripts(SCRIPTS)
-
-        embed = discord.Embed(
-            title="✅ SCRIPT ADDED",
-            description=f"**{name}** added as `{key.lower()}`",
-            color=0x00FF00
-        )
+        embed = discord.Embed(title="✅ SCRIPT ADDED", description=f"**{name}** added as `{key.lower()}`", color=0x00FF00)
         embed.add_field(name="Loadstring", value=f"```lua\n{loadstring_code}\n```", inline=False)
-        embed.add_field(name="Desc", value=desc, inline=False)
         await ctx.send(embed=embed)
-
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
 
@@ -124,15 +113,12 @@ async def add_script(ctx, key: str = None, *, rest: str = None):
 async def add_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Nah bro, you need ADMIN to use `!add`. IM TOO GOOD.")
-    else:
-        await ctx.send(f"❌ Error: {error}")
 
-# ADMIN ONLY DELETE COMMAND TOO
 @bot.command(name="delete")
 @commands.has_permissions(administrator=True)
 async def delete_script(ctx, key: str = None):
     if not key:
-        await ctx.send("Usage: `!delete <key>` - Example: `!delete duels`")
+        await ctx.send("Usage: `!delete <key>`")
         return
     key = key.lower()
     if key in SCRIPTS:
@@ -142,12 +128,6 @@ async def delete_script(ctx, key: str = None):
     else:
         await ctx.send(f"❌ No script found for `{key}`")
 
-@delete_script.error
-async def delete_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ Need ADMIN perms to delete.")
-
+# --- THIS IS THE FIX ---
+keep_alive()
 bot.run(BOT_TOKEN)
-
-
-
